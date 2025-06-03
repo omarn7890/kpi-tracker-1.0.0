@@ -36,6 +36,55 @@
             font-size: 2.5em;
         }
         
+        .connection-status {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+        
+        .connected {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .disconnected {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .setup-section {
+            background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+        }
+        
+        .setup-section h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        
+        .setup-instructions {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #2196f3;
+        }
+        
+        .setup-instructions ol {
+            margin-left: 20px;
+        }
+        
+        .setup-instructions li {
+            margin-bottom: 8px;
+        }
+        
         .dashboard-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -113,7 +162,7 @@
             font-size: 0.9em;
         }
         
-        input, select {
+        input, select, textarea {
             padding: 12px;
             border: 2px solid #e9ecef;
             border-radius: 8px;
@@ -122,7 +171,7 @@
             background: white;
         }
         
-        input:focus, select:focus {
+        input:focus, select:focus, textarea:focus {
             outline: none;
             border-color: #3498db;
             box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
@@ -138,6 +187,8 @@
             font-weight: 600;
             cursor: pointer;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
+            margin-right: 10px;
+            margin-bottom: 10px;
         }
         
         .btn:hover {
@@ -147,7 +198,14 @@
         
         .btn-secondary {
             background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
-            margin-left: 10px;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
         }
         
         .list-performance {
@@ -227,6 +285,10 @@
             margin-top: 30px;
         }
         
+        .hidden {
+            display: none;
+        }
+        
         @media (max-width: 768px) {
             .container {
                 padding: 20px;
@@ -249,6 +311,39 @@
 <body>
     <div class="container">
         <h1>📊 Real Estate SMS Campaign KPI Tracker</h1>
+        
+        <!-- Connection Status -->
+        <div id="connectionStatus" class="connection-status disconnected">
+            🔴 Not connected to Google Sheets
+        </div>
+        
+        <!-- Google Sheets Setup -->
+        <div class="setup-section">
+            <h3>🔗 Google Sheets Integration Setup</h3>
+            <div class="setup-instructions">
+                <strong>Setup Instructions:</strong>
+                <ol>
+                    <li>Go to <a href="https://console.developers.google.com/" target="_blank">Google Cloud Console</a></li>
+                    <li>Create a new project or select existing one</li>
+                    <li>Enable the Google Sheets API</li>
+                    <li>Create credentials (API Key)</li>
+                    <li>Enable Google Apps Script API</li>
+                    <li>Copy your API key below</li>
+                </ol>
+            </div>
+            <div class="input-grid">
+                <div class="input-group">
+                    <label for="apiKey">Google Sheets API Key</label>
+                    <input type="password" id="apiKey" placeholder="Enter your API key">
+                </div>
+                <div class="input-group">
+                    <label for="spreadsheetId">Spreadsheet ID (from URL)</label>
+                    <input type="text" id="spreadsheetId" value="1b6KnMtbZmTDqWvo_dUrMWcpjC_Z8SVFqC6BZBv57yIM" placeholder="Spreadsheet ID">
+                </div>
+            </div>
+            <button class="btn btn-success" onclick="connectToGoogleSheets()">Connect to Google Sheets</button>
+            <button class="btn btn-secondary" onclick="testConnection()">Test Connection</button>
+        </div>
         
         <!-- Main KPI Dashboard -->
         <div class="dashboard-grid">
@@ -278,7 +373,7 @@
             
             <div class="kpi-card">
                 <div class="kpi-header">
-                    <span class="kpi-title">🏠 Contract</span>
+                    <span class="kpi-title">🏠 Contracts Signed</span>
                 </div>
                 <div class="kpi-value" id="contractsSigned">0</div>
                 <div class="kpi-percentage" id="contractRate">Conversion Rate: <span>0%</span></div>
@@ -286,18 +381,10 @@
             
             <div class="kpi-card">
                 <div class="kpi-header">
-                    <span class="kpi-title">💰 Cost Per Lead</span>
-                </div>
-                <div class="kpi-value" id="costPerLead">$0</div>
-                <div class="kpi-percentage neutral">Total Spend: $<span id="totalSpend">0</span></div>
-            </div>
-            
-            <div class="kpi-card">
-                <div class="kpi-header">
                     <span class="kpi-title">💸 Cost Per Deal</span>
                 </div>
                 <div class="kpi-value" id="costPerDeal">$0</div>
-                <div class="kpi-percentage neutral">ROI Tracking</div>
+                <div class="kpi-percentage neutral">Total Spend: $<span id="totalSpend">0</span></div>
             </div>
         </div>
         
@@ -306,17 +393,13 @@
             <h3>📝 Add Campaign Data</h3>
             <div class="input-grid">
                 <div class="input-group">
-                    <label for="listType">List Type</label>
-                    <select id="listType">
-                        <option value="County Records">County Records</option>
-                        <option value="Tax Sales">Tax Sales</option>
-                        <option value="Probates">Probates</option>
-                        <option value="Foreclosure">Mortgage Foreclosure</option>
-                        <option value="Credit Collection">Credit Collection</option>
-                        <option value="Vacant">Vacant Properties</option>
-                        <option value="Absent Owners">Absent Owners</option>
-                        <option value="Tired Landlords">Tired Landlords</option>
-                    </select>
+                    <label for="listName">List Name (Custom)</label>
+                    <input type="text" id="listName" placeholder="Enter custom list name">
+                </div>
+                
+                <div class="input-group">
+                    <label for="averagePerformance">Average List Performance (%)</label>
+                    <input type="number" id="averagePerformance" step="0.1" placeholder="e.g., 3.5">
                 </div>
                 
                 <div class="input-group">
@@ -346,6 +429,7 @@
             </div>
             
             <button class="btn" onclick="addCampaignData()">Add Data</button>
+            <button class="btn btn-success" onclick="syncToGoogleSheets()">Sync to Google Sheets</button>
             <button class="btn btn-secondary" onclick="clearAllData()">Clear All Data</button>
         </div>
         
@@ -368,53 +452,157 @@
         <!-- Export Section -->
         <div class="export-section">
             <button class="btn" onclick="exportData()">📊 Export Data to CSV</button>
+            <button class="btn btn-warning" onclick="loadFromGoogleSheets()">📥 Load from Google Sheets</button>
         </div>
     </div>
 
+    <script src="https://apis.google.com/js/api.js"></script>
     <script>
         // Data storage
-        let campaignData = JSON.parse(localStorage.getItem('smsKpiData')) || [];
+        let campaignData = [];
+        let isGoogleSheetsConnected = false;
+        let gapi_loaded = false;
+        let API_KEY = '';
+        let SPREADSHEET_ID = '1b6KnMtbZmTDqWvo_dUrMWcpjC_Z8SVFqC6BZBv57yIM';
+        let SHEET_NAME = 'Sheet1'; // Adjust if your sheet has a different name
         
-        // Initialize dashboard
+        // Initialize when page loads
         document.addEventListener('DOMContentLoaded', function() {
+            loadStoredCredentials();
             updateDashboard();
             updateListPerformance();
             generateInsights();
         });
         
+        function loadStoredCredentials() {
+            const storedApiKey = localStorage.getItem('googleSheetsApiKey');
+            const storedSpreadsheetId = localStorage.getItem('spreadsheetId');
+            
+            if (storedApiKey) {
+                document.getElementById('apiKey').value = storedApiKey;
+                API_KEY = storedApiKey;
+            }
+            
+            if (storedSpreadsheetId) {
+                document.getElementById('spreadsheetId').value = storedSpreadsheetId;
+                SPREADSHEET_ID = storedSpreadsheetId;
+            }
+        }
+        
+        function connectToGoogleSheets() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const spreadsheetId = document.getElementById('spreadsheetId').value.trim();
+            
+            if (!apiKey || !spreadsheetId) {
+                alert('Please enter both API Key and Spreadsheet ID');
+                return;
+            }
+            
+            API_KEY = apiKey;
+            SPREADSHEET_ID = spreadsheetId;
+            
+            // Store credentials
+            localStorage.setItem('googleSheetsApiKey', apiKey);
+            localStorage.setItem('spreadsheetId', spreadsheetId);
+            
+            // Initialize Google API
+            gapi.load('client', initializeGapi);
+        }
+        
+        function initializeGapi() {
+            gapi.client.init({
+                apiKey: API_KEY,
+                discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
+            }).then(function() {
+                isGoogleSheetsConnected = true;
+                updateConnectionStatus(true);
+                console.log('Google Sheets API initialized successfully');
+            }).catch(function(error) {
+                console.error('Error initializing Google API:', error);
+                updateConnectionStatus(false);
+                alert('Error connecting to Google Sheets. Please check your API key and try again.');
+            });
+        }
+        
+        function updateConnectionStatus(connected) {
+            const statusDiv = document.getElementById('connectionStatus');
+            if (connected) {
+                statusDiv.className = 'connection-status connected';
+                statusDiv.textContent = '🟢 Connected to Google Sheets';
+                isGoogleSheetsConnected = true;
+            } else {
+                statusDiv.className = 'connection-status disconnected';
+                statusDiv.textContent = '🔴 Not connected to Google Sheets';
+                isGoogleSheetsConnected = false;
+            }
+        }
+        
+        function testConnection() {
+            if (!API_KEY) {
+                alert('Please enter your API key first');
+                return;
+            }
+            
+            gapi.load('client', function() {
+                gapi.client.init({
+                    apiKey: API_KEY,
+                    discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
+                }).then(function() {
+                    return gapi.client.sheets.spreadsheets.get({
+                        spreadsheetId: SPREADSHEET_ID
+                    });
+                }).then(function(response) {
+                    alert('✅ Connection successful! Spreadsheet title: ' + response.result.properties.title);
+                    updateConnectionStatus(true);
+                }).catch(function(error) {
+                    console.error('Connection test failed:', error);
+                    alert('❌ Connection failed. Please check your API key and Spreadsheet ID.');
+                    updateConnectionStatus(false);
+                });
+            });
+        }
+        
         function addCampaignData() {
-            const listType = document.getElementById('listType').value;
+            const listName = document.getElementById('listName').value.trim();
+            const averagePerformance = parseFloat(document.getElementById('averagePerformance').value) || 0;
             const messagesSent = parseInt(document.getElementById('messagesSent').value) || 0;
             const responses = parseInt(document.getElementById('responses').value) || 0;
             const appointments = parseInt(document.getElementById('appointments').value) || 0;
             const contracts = parseInt(document.getElementById('contracts').value) || 0;
             const campaignCost = parseFloat(document.getElementById('campaignCost').value) || 0;
             
-            if (messagesSent === 0) {
-                alert('Please enter the number of messages sent');
+            if (!listName || messagesSent === 0) {
+                alert('Please enter list name and number of messages sent');
                 return;
             }
+            
+            // Calculate actual performance vs average
+            const actualResponseRate = (responses / messagesSent * 100);
+            const performanceVsAverage = averagePerformance > 0 ? 
+                ((actualResponseRate - averagePerformance) / averagePerformance * 100) : 0;
             
             const newEntry = {
                 id: Date.now(),
                 date: new Date().toISOString().split('T')[0],
-                listType,
+                listName,
+                averagePerformance,
                 messagesSent,
                 responses,
                 appointments,
                 contracts,
                 campaignCost,
-                responseRate: (responses / messagesSent * 100).toFixed(2),
+                responseRate: actualResponseRate.toFixed(2),
                 appointmentRate: responses > 0 ? (appointments / responses * 100).toFixed(2) : 0,
                 contractRate: appointments > 0 ? (contracts / appointments * 100).toFixed(2) : 0,
-                costPerLead: responses > 0 ? (campaignCost / responses).toFixed(2) : 0,
-                costPerDeal: contracts > 0 ? (campaignCost / contracts).toFixed(2) : 0
+                costPerDeal: contracts > 0 ? (campaignCost / contracts).toFixed(2) : 0,
+                performanceVsAverage: performanceVsAverage.toFixed(1)
             };
             
             campaignData.push(newEntry);
-            localStorage.setItem('smsKpiData', JSON.stringify(campaignData));
             
             // Clear form
+            document.getElementById('listName').value = '';
+            document.getElementById('averagePerformance').value = '';
             document.getElementById('messagesSent').value = '';
             document.getElementById('responses').value = '';
             document.getElementById('appointments').value = '';
@@ -424,6 +612,112 @@
             updateDashboard();
             updateListPerformance();
             generateInsights();
+            
+            alert('Campaign data added successfully!');
+        }
+        
+        function syncToGoogleSheets() {
+            if (!isGoogleSheetsConnected) {
+                alert('Please connect to Google Sheets first');
+                return;
+            }
+            
+            if (campaignData.length === 0) {
+                alert('No data to sync');
+                return;
+            }
+            
+            // Prepare data for Google Sheets
+            const headers = [
+                'Date', 'List Name', 'Average Performance (%)', 'Messages Sent', 
+                'Responses', 'Response Rate (%)', 'Performance vs Average (%)',
+                'Appointments', 'Appointment Rate (%)', 'Contracts', 
+                'Contract Rate (%)', 'Campaign Cost ($)', 'Cost Per Deal ($)'
+            ];
+            
+            const rows = campaignData.map(entry => [
+                entry.date,
+                entry.listName,
+                entry.averagePerformance,
+                entry.messagesSent,
+                entry.responses,
+                entry.responseRate,
+                entry.performanceVsAverage,
+                entry.appointments,
+                entry.appointmentRate,
+                entry.contracts,
+                entry.contractRate,
+                entry.campaignCost,
+                entry.costPerDeal
+            ]);
+            
+            const values = [headers, ...rows];
+            
+            gapi.client.sheets.spreadsheets.values.update({
+                spreadsheetId: SPREADSHEET_ID,
+                range: SHEET_NAME + '!A1',
+                valueInputOption: 'RAW',
+                resource: {
+                    values: values
+                }
+            }).then(function(response) {
+                alert('✅ Data successfully synced to Google Sheets!');
+                console.log('Sync successful:', response);
+            }).catch(function(error) {
+                console.error('Sync error:', error);
+                alert('❌ Error syncing to Google Sheets. Please check your permissions and try again.');
+            });
+        }
+        
+        function loadFromGoogleSheets() {
+            if (!isGoogleSheetsConnected) {
+                alert('Please connect to Google Sheets first');
+                return;
+            }
+            
+            gapi.client.sheets.spreadsheets.values.get({
+                spreadsheetId: SPREADSHEET_ID,
+                range: SHEET_NAME + '!A1:M1000',
+            }).then(function(response) {
+                const values = response.result.values;
+                if (!values || values.length < 2) {
+                    alert('No data found in the spreadsheet');
+                    return;
+                }
+                
+                // Skip header row and convert to campaign data format
+                campaignData = [];
+                for (let i = 1; i < values.length; i++) {
+                    const row = values[i];
+                    if (row.length >= 6 && row[3]) { // Ensure minimum required fields
+                        campaignData.push({
+                            id: Date.now() + i,
+                            date: row[0] || new Date().toISOString().split('T')[0],
+                            listName: row[1] || 'Unknown',
+                            averagePerformance: parseFloat(row[2]) || 0,
+                            messagesSent: parseInt(row[3]) || 0,
+                            responses: parseInt(row[4]) || 0,
+                            responseRate: parseFloat(row[5]) || 0,
+                            performanceVsAverage: parseFloat(row[6]) || 0,
+                            appointments: parseInt(row[7]) || 0,
+                            appointmentRate: parseFloat(row[8]) || 0,
+                            contracts: parseInt(row[9]) || 0,
+                            contractRate: parseFloat(row[10]) || 0,
+                            campaignCost: parseFloat(row[11]) || 0,
+                            costPerDeal: parseFloat(row[12]) || 0
+                        });
+                    }
+                }
+                
+                updateDashboard();
+                updateListPerformance();
+                generateInsights();
+                
+                alert(`✅ Successfully loaded ${campaignData.length} records from Google Sheets!`);
+            }).catch(function(error) {
+                console.error('Load error:', error);
+                alert('❌ Error loading from Google Sheets. Please check your permissions and try again.');
+            });
         }
         
         function updateDashboard() {
@@ -442,7 +736,6 @@
             const responseRate = totals.messagesSent > 0 ? (totals.responses / totals.messagesSent * 100).toFixed(1) : 0;
             const appointmentRate = totals.responses > 0 ? (totals.appointments / totals.responses * 100).toFixed(1) : 0;
             const contractRate = totals.messagesSent > 0 ? (totals.contracts / totals.messagesSent * 100).toFixed(2) : 0;
-            const costPerLead = totals.responses > 0 ? (totals.campaignCost / totals.responses).toFixed(2) : 0;
             const costPerDeal = totals.contracts > 0 ? (totals.campaignCost / totals.contracts).toFixed(2) : 0;
             
             // Update DOM
@@ -450,7 +743,6 @@
             document.getElementById('responseRate').textContent = responseRate + '%';
             document.getElementById('appointmentRate').textContent = appointmentRate + '%';
             document.getElementById('contractsSigned').textContent = totals.contracts;
-            document.getElementById('costPerLead').textContent = '$' + costPerLead;
             document.getElementById('costPerDeal').textContent = totals.contracts > 0 ? '$' + costPerDeal : 'N/A';
             document.getElementById('totalSpend').textContent = totals.campaignCost.toFixed(2);
             
@@ -474,33 +766,38 @@
         function updateListPerformance() {
             const listPerformanceDiv = document.getElementById('listPerformance');
             
-            // Group data by list type
+            // Group data by list name
             const listStats = {};
             campaignData.forEach(entry => {
-                if (!listStats[entry.listType]) {
-                    listStats[entry.listType] = {
+                if (!listStats[entry.listName]) {
+                    listStats[entry.listName] = {
                         messagesSent: 0,
                         responses: 0,
                         appointments: 0,
                         contracts: 0,
-                        cost: 0
+                        cost: 0,
+                        averagePerformance: 0,
+                        performanceVsAverage: []
                     };
                 }
-                listStats[entry.listType].messagesSent += entry.messagesSent;
-                listStats[entry.listType].responses += entry.responses;
-                listStats[entry.listType].appointments += entry.appointments;
-                listStats[entry.listType].contracts += entry.contracts;
-                listStats[entry.listType].cost += entry.campaignCost;
+                listStats[entry.listName].messagesSent += entry.messagesSent;
+                listStats[entry.listName].responses += entry.responses;
+                listStats[entry.listName].appointments += entry.appointments;
+                listStats[entry.listName].contracts += entry.contracts;
+                listStats[entry.listName].cost += entry.campaignCost;
+                listStats[entry.listName].averagePerformance = entry.averagePerformance;
+                listStats[entry.listName].performanceVsAverage.push(parseFloat(entry.performanceVsAverage));
             });
             
             let html = '';
-            Object.entries(listStats).forEach(([listType, stats]) => {
+            Object.entries(listStats).forEach(([listName, stats]) => {
                 const responseRate = stats.messagesSent > 0 ? (stats.responses / stats.messagesSent * 100).toFixed(1) : 0;
-                const costPerLead = stats.responses > 0 ? (stats.cost / stats.responses).toFixed(2) : 0;
+                const avgPerformanceVsAverage = stats.performanceVsAverage.length > 0 ? 
+                    (stats.performanceVsAverage.reduce((a, b) => a + b, 0) / stats.performanceVsAverage.length).toFixed(1) : 0;
                 
                 html += `
                     <div class="list-item">
-                        <div class="list-name">${listType}</div>
+                        <div class="list-name">${listName}</div>
                         <div class="list-stats">
                             <div class="stat-item">
                                 <span>Messages:</span>
@@ -511,16 +808,20 @@
                                 <span>${responseRate}%</span>
                             </div>
                             <div class="stat-item">
+                                <span>Avg Expected:</span>
+                                <span>${stats.averagePerformance}%</span>
+                            </div>
+                            <div class="stat-item">
+                                <span>vs Average:</span>
+                                <span style="color: ${avgPerformanceVsAverage >= 0 ? '#27ae60' : '#e74c3c'}">${avgPerformanceVsAverage}%</span>
+                            </div>
+                            <div class="stat-item">
                                 <span>Appointments:</span>
                                 <span>${stats.appointments}</span>
                             </div>
                             <div class="stat-item">
                                 <span>Contracts:</span>
                                 <span>${stats.contracts}</span>
-                            </div>
-                            <div class="stat-item">
-                                <span>Cost/Lead:</span>
-                                <span>$${costPerLead}</span>
                             </div>
                         </div>
                     </div>
@@ -540,28 +841,38 @@
             
             const insights = [];
             
-            // Group by list type for analysis
+            // Group by list name for analysis
             const listStats = {};
             campaignData.forEach(entry => {
-                if (!listStats[entry.listType]) {
-                    listStats[entry.listType] = { entries: [], totalCost: 0, totalLeads: 0 };
+                if (!listStats[entry.listName]) {
+                    listStats[entry.listName] = { 
+                        entries: [], 
+                        totalCost: 0, 
+                        totalLeads: 0,
+                        performanceVsAverage: []
+                    };
                 }
-                listStats[entry.listType].entries.push(entry);
-                listStats[entry.listType].totalCost += entry.campaignCost;
-                listStats[entry.listType].totalLeads += entry.responses;
+                listStats[entry.listName].entries.push(entry);
+                listStats[entry.listName].totalCost += entry.campaignCost;
+                listStats[entry.listName].totalLeads += entry.responses;
+                listStats[entry.listName].performanceVsAverage.push(parseFloat(entry.performanceVsAverage));
             });
             
-            // Find best performing list
-            let bestList = { name: '', rate: 0 };
-            Object.entries(listStats).forEach(([listType, data]) => {
-                const avgRate = data.entries.reduce((sum, entry) => sum + parseFloat(entry.responseRate), 0) / data.entries.length;
-                if (avgRate > bestList.rate) {
-                    bestList = { name: listType, rate: avgRate.toFixed(1) };
+            // Find best performing list vs expectations
+            let bestPerformingList = { name: '', performance: -Infinity };
+            Object.entries(listStats).forEach(([listName, data]) => {
+                const avgPerformanceVsAverage = data.performanceVsAverage.reduce((a, b) => a + b, 0) / data.performanceVsAverage.length;
+                if (avgPerformanceVsAverage > bestPerformingList.performance) {
+                    bestPerformingList = { name: listName, performance: avgPerformanceVsAverage.toFixed(1) };
                 }
             });
             
-            if (bestList.name) {
-                insights.push(`🏆 Best performing list: ${bestList.name} with ${bestList.rate}% response rate. Consider allocating more budget here.`);
+            if (bestPerformingList.name) {
+                if (bestPerformingList.performance > 0) {
+                    insights.push(`🏆 ${bestPerformingList.name} is outperforming expectations by ${bestPerformingList.performance}%! Consider increasing budget allocation.`);
+                } else {
+                    insights.push(`⚠️ ${bestPerformingList.name} is underperforming expectations by ${Math.abs(bestPerformingList.performance)}%. Review messaging or list quality.`);
+                }
             }
             
             // Overall performance insights
@@ -572,19 +883,30 @@
             if (overallRate >= 5) {
                 insights.push(`🔥 Outstanding overall response rate of ${overallRate}%! You're outperforming industry standards.`);
             } else if (overallRate < 2) {
-                insights.push(`⚠️ Response rate of ${overallRate}% is below average. Consider testing new message templates or list quality.`);
+                insights.push(`⚠️ Response rate of ${overallRate}% is below average. Consider testing new message templates or improving list quality.`);
+            }
+            
+            // Performance vs expectations analysis
+            const avgPerformanceVsExpected = campaignData.reduce((sum, entry) => sum + parseFloat(entry.performanceVsAverage), 0) / campaignData.length;
+            if (avgPerformanceVsExpected > 10) {
+                insights.push(`🎯 Your campaigns are consistently exceeding expectations by ${avgPerformanceVsExpected.toFixed(1)}% on average!`);
+            } else if (avgPerformanceVsExpected < -10) {
+                insights.push(`📉 Campaigns are underperforming expectations by ${Math.abs(avgPerformanceVsExpected).toFixed(1)}% on average. Consider strategy adjustments.`);
             }
             
             // Cost efficiency insights
-            const avgCostPerLead = campaignData.reduce((sum, entry) => sum + parseFloat(entry.costPerLead || 0), 0) / campaignData.length;
-            if (avgCostPerLead > 50) {
-                insights.push(`💰 Cost per lead averaging $${avgCostPerLead.toFixed(2)} is high. Focus on improving response rates or reducing campaign costs.`);
-            } else if (avgCostPerLead < 20) {
-                insights.push(`💚 Excellent cost efficiency! $${avgCostPerLead.toFixed(2)} per lead is very competitive.`);
+            const avgCostPerDeal = campaignData.filter(entry => entry.contracts > 0)
+                .reduce((sum, entry) => sum + parseFloat(entry.costPerDeal || 0), 0) / 
+                campaignData.filter(entry => entry.contracts > 0).length;
+            
+            if (avgCostPerDeal && avgCostPerDeal > 1000) {
+                insights.push(`💰 Cost per deal averaging ${avgCostPerDeal.toFixed(2)} is high. Focus on improving conversion rates.`);
+            } else if (avgCostPerDeal && avgCostPerDeal < 500) {
+                insights.push(`💚 Excellent cost efficiency! ${avgCostPerDeal.toFixed(2)} per deal is very competitive.`);
             }
             
             // Add general recommendations
-            insights.push(`📊 Recommended: Test A/B variations of your top-performing templates to optimize further.`);
+            insights.push(`📊 Recommended: Compare actual performance against your expected averages to identify winning strategies.`);
             insights.push(`⏰ Best practice: Respond to interested leads within 15 minutes to maximize conversion rates.`);
             
             let html = '';
@@ -598,7 +920,6 @@
         function clearAllData() {
             if (confirm('Are you sure you want to clear all campaign data? This cannot be undone.')) {
                 campaignData = [];
-                localStorage.removeItem('smsKpiData');
                 updateDashboard();
                 updateListPerformance();
                 generateInsights();
@@ -608,10 +929,11 @@
                 document.getElementById('responseRate').textContent = '0%';
                 document.getElementById('appointmentRate').textContent = '0%';
                 document.getElementById('contractsSigned').textContent = '0';
-                document.getElementById('costPerLead').textContent = '$0';
                 document.getElementById('costPerDeal').textContent = '$0';
                 document.getElementById('totalSpend').textContent = '0';
                 document.querySelector('#contractRate span').textContent = '0%';
+                
+                alert('All data cleared successfully!');
             }
         }
         
@@ -621,26 +943,31 @@
                 return;
             }
             
-            const headers = ['Date', 'List Type', 'Messages Sent', 'Responses', 'Response Rate', 'Appointments', 'Appointment Rate', 'Contracts', 'Contract Rate', 'Campaign Cost', 'Cost Per Lead', 'Cost Per Deal'];
+            const headers = [
+                'Date', 'List Name', 'Average Performance (%)', 'Messages Sent', 
+                'Responses', 'Response Rate (%)', 'Performance vs Average (%)',
+                'Appointments', 'Appointment Rate (%)', 'Contracts', 
+                'Contract Rate (%)', 'Campaign Cost ($)', 'Cost Per Deal ($)'
+            ];
             
-            const csvContent = [
-                headers.join(','),
-                ...campaignData.map(entry => [
-                    entry.date,
-                    entry.listType,
-                    entry.messagesSent,
-                    entry.responses,
-                    entry.responseRate + '%',
-                    entry.appointments,
-                    entry.appointmentRate + '%',
-                    entry.contracts,
-                    entry.contractRate + '%',
-                    '$' + entry.campaignCost,
-                    '$' + entry.costPerLead,
-                    entry.costPerDeal ? '$' + entry.costPerDeal : 'N/A'
-                ].join(','))
-            ].join('\n');
-            
+           const csvContent = [
+    headers.join(','),
+    ...campaignData.map(entry => [
+        entry.date,
+        entry.listName,
+        entry.averagePerformance,
+        entry.messagesSent,
+        entry.responses,
+        entry.responseRate + '%',
+        entry.performanceVsAverage + '%',
+        entry.appointments,
+        entry.appointmentRate + '%',
+        entry.contracts,
+        entry.contractRate + '%',
+        entry.campaignCost,
+        entry.costPerDeal ? entry.costPerDeal : 'N/A'
+    ].join(','))
+].join('\n');
             const blob = new Blob([csvContent], { type: 'text/csv' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -648,6 +975,8 @@
             a.download = `sms-campaign-data-${new Date().toISOString().split('T')[0]}.csv`;
             a.click();
             window.URL.revokeObjectURL(url);
+            
+            alert('Data exported successfully!');
         }
     </script>
 </body>
